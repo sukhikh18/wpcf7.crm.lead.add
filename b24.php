@@ -30,13 +30,6 @@ if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 		/** @var array $posted_data Значения переданные формой WPCF7 */
 		$posted_data = $WPCF7_Submission->get_posted_data();
 
-		/** @var array Постоянные значения */
-		$default_fields = array(
-			'TITLE'          => 'Лид с формы сайта',
-			'ASSIGNED_BY_ID' => BITRIX24_USER_ID,
-			'SOURCE_ID'      => 'WEB'
-		);
-
 		/** @var array $posted_fields поля которые нужно приянть из $posted_data */
 		$posted_fields = array(
 			'NAME'     => 'your-name',
@@ -57,7 +50,9 @@ if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 		);
 
 		if ( 5 == $WPCF7_ContactForm->id ) {
-			send_b24_lead( $posted_data, $posted_fields, $default_fields );
+			send_b24_lead( $posted_data, $posted_fields, array(
+				'TITLE' => 'Веб форма: ' . $WPCF7_ContactForm->title,
+			) );
 		}
 	}
 }
@@ -75,7 +70,7 @@ if ( ! function_exists( 'get_b24_api_url' ) ) {
 }
 
 if ( ! function_exists( 'send_b24_lead' ) ) {
-	function send_b24_lead( $posted_data, $fields, $defaults ) {
+	function send_b24_lead( $posted_data, $fields, $additionals ) {
 		// Принимаем нужные нам значения
 		$fields = array_map( function ( $value ) use ( $posted_data ) {
 			return isset( $posted_data[ $value ] ) ? $posted_data[ $value ] : '';
@@ -89,7 +84,12 @@ if ( ! function_exists( 'send_b24_lead' ) ) {
 		// Если хотим убрать пустые значения
 		// $fields = array_filter( $fields );
 
-		$fields = array_merge($fields, $defaults);
+		$fields = wp_parse_args( array_merge( $fields, $additionals ), array(
+			'TITLE'          => 'Лид с веб формы сайта',
+			'ASSIGNED_BY_ID' => BITRIX24_USER_ID,
+			'SOURCE_ID'      => 'WEB'
+		) );
+
 		$params = array( "REGISTER_SONET_EVENT" => "Y" );
 
 		$api_query_postfields = http_build_query( compact( 'fields', 'params' ) );
