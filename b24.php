@@ -3,7 +3,7 @@
  * Plugin Name: Contact form to Bitrix24 lead
  * Plugin URI: https://github.com/nikolays93
  * Description: Insert lead entity into bitrix on submit (sent) form message.
- * Version: 0.1
+ * Version: 0.1.1
  * Author: NikolayS93
  * Author URI: https://vk.com/nikolays_93
  * Author EMAIL: NikolayS93@ya.ru
@@ -74,22 +74,34 @@ if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 			// 'UF_CRM_12345' => 'cid',
 		);
 
-		if ( 5 == $WPCF7_ContactForm->id ) {
+		// if ( 5 == $WPCF7_ContactForm->id ) {
 			send_b24_lead( $posted_data, $posted_fields, array(
 				'TITLE' => 'Веб форма: ' . $WPCF7_ContactForm->title,
 			) );
-		}
+		// }
 	}
 }
 
 add_action( 'wpcf7_mail_sent', 'wpcf7_b24_send_lead', 10, 3 );
 
 if ( ! function_exists( 'send_b24_lead' ) ) {
-	function send_b24_lead( $posted_data, $fields, $additionals ) {
-		// Принимаем нужные нам значения
+	function send_b24_lead( $posted_data, $_fields, $additionals ) {
+		// Принимаем значения из $posted_data (обработанный $_POST массив)
 		$fields = array_map( function ( $value ) use ( $posted_data ) {
 			return isset( $posted_data[ $value ] ) ? $posted_data[ $value ] : '';
-		}, $fields );
+		}, $_fields );
+
+		// Добавляем все оставшиеся поля в комментарии
+		if ( ! empty( $fields['COMMENTS'] ) ) {
+			$fields['COMMENTS'] .= "\r\n____________________________________________";
+			$fields['COMMENTS'] .= "\r\n";
+
+			array_walk( $posted_data, function ( $val, $key ) use ( &$fields, $_fields ) {
+				if ( ! in_array( $key, $_fields ) && $val ) {
+					$fields['COMMENTS'] .= "$key: $val.\r\n";
+				}
+			} );
+		}
 
 		if ( ! empty( $fields['PHONE'] ) ) {
 			// not typo error array(array())!
@@ -101,6 +113,7 @@ if ( ! function_exists( 'send_b24_lead' ) ) {
 
 		$fields = wp_parse_args( array_merge( $fields, $additionals ), array(
 			'TITLE'          => 'Лид с веб формы сайта',
+			'STATUS_ID'      => 'NEW',
 			'ASSIGNED_BY_ID' => BITRIX24_USER_ID,
 			'SOURCE_ID'      => 'WEB'
 		) );
