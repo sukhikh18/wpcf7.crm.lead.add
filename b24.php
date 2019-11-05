@@ -1,4 +1,19 @@
 <?php
+/**
+ * Plugin Name: Contact form to Bitrix24 lead
+ * Plugin URI: https://github.com/nikolays93
+ * Description: Insert lead entity into bitrix on submit (sent) form message.
+ * Version: 0.1
+ * Author: NikolayS93
+ * Author URI: https://vk.com/nikolays_93
+ * Author EMAIL: NikolayS93@ya.ru
+ * License: GNU General Public License v2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: cfb24lead
+ * Domain Path: /languages/
+ *
+ * @package wpcf7.crm.lead.add
+ */
 
 if ( ! defined( 'BITRIX24_SUBDOMAIN' ) ) {
 	define( 'BITRIX24_SUBDOMAIN', 'seo18ru' );
