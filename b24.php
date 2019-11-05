@@ -103,9 +103,24 @@ if ( ! function_exists( 'send_b24_lead' ) ) {
 			} );
 		}
 
+		// Переводим номер телефона в многомерный массив
 		if ( ! empty( $fields['PHONE'] ) ) {
-			// not typo error array(array())!
-			$fields['PHONE'] = array( array( 'VALUE' => $fields['PHONE'], "VALUE_TYPE" => 'WORK' ) );
+			$phone = array(
+				'VALUE'      => $fields['PHONE'],
+				'VALUE_TYPE' => 'WORK',
+			);
+
+			$fields['PHONE'] = array( $phone );
+		}
+
+		// Переводим email в многомерный массив
+		if ( ! empty( $fields['EMAIL'] ) ) {
+			$email = array(
+				'VALUE'      => $fields['EMAIL'],
+				'VALUE_TYPE' => 'WORK',
+			);
+
+			$fields['EMAIL'] = array( $email );
 		}
 
 		// Если хотим убрать пустые значения
