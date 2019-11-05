@@ -27,6 +27,16 @@ if ( ! defined( 'BITRIX24_TOKEN' ) ) {
 	define( 'BITRIX24_TOKEN', '1234l1pofb8huv' );
 }
 
+if ( ! function_exists( 'get_b24_api_url' ) ) {
+	function get_b24_api_url( $method, $answer_type = 'json' ) {
+		$sub     = BITRIX24_SUBDOMAIN;
+		$token   = BITRIX24_TOKEN;
+		$user_id = BITRIX24_USER_ID;
+
+		return "https://{$sub}.bitrix24.ru/rest/{$user_id}/{$token}/{$method}.{$answer_type}";
+	}
+}
+
 if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 	/**
 	 * Выполняется после отправки сообщения WPCF7
@@ -73,16 +83,6 @@ if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 }
 
 add_action( 'wpcf7_mail_sent', 'wpcf7_b24_send_lead', 10, 3 );
-
-if ( ! function_exists( 'get_b24_api_url' ) ) {
-	function get_b24_api_url( $method, $answer_type = 'json' ) {
-		$sub     = BITRIX24_SUBDOMAIN;
-		$token   = BITRIX24_TOKEN;
-		$user_id = BITRIX24_USER_ID;
-
-		return "https://{$sub}.bitrix24.ru/rest/{$user_id}/{$token}/{$method}.{$answer_type}";
-	}
-}
 
 if ( ! function_exists( 'send_b24_lead' ) ) {
 	function send_b24_lead( $posted_data, $fields, $additionals ) {
