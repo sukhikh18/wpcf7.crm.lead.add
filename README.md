@@ -14,3 +14,6 @@
 ### Альтернативная установка
 1. Клонировать или скачать проект в папку /wp-content/mu-plugins/wpcf7.crm.lead.add/
 2. Повторить 2, 3 пункты предыдущего раздела
+
+### Дополнительная литература
+https://dev.1c-bitrix.ru/community/blogs/chaos/crm-sozdanie-lidov-iz-drugikh-servisov.php
