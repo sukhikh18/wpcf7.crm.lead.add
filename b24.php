@@ -27,6 +27,8 @@ if ( ! defined( 'BITRIX24_TOKEN' ) ) {
 	define( 'BITRIX24_TOKEN', '1234l1pofb8huv' );
 }
 
+load_plugin_textdomain( 'cfb24lead', false, basename( __DIR__ ) . '/languages/' );
+
 if ( ! function_exists( 'get_b24_api_url' ) ) {
 	function get_b24_api_url( $method, $answer_type = 'json' ) {
 		$sub     = BITRIX24_SUBDOMAIN;
@@ -63,6 +65,7 @@ if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 			'COMMENTS' => 'your-message',
 
 			'UTM_SOURCE'   => 'utm_source',
+			'UTM_CONTENT'  => 'utm_content',
 			'UTM_MEDIUM'   => 'utm_medium',
 			'UTM_CAMPAIGN' => 'utm_campaign',
 			'UTM_TERM'     => 'utm_term',
@@ -74,18 +77,25 @@ if ( ! function_exists( 'wpcf7_b24_send_lead' ) ) {
 			// 'UF_CRM_12345' => 'cid',
 		);
 
-		// if ( 5 == $WPCF7_ContactForm->id ) {
-			send_b24_lead( $posted_data, $posted_fields, array(
-				'TITLE' => 'Веб форма: ' . $WPCF7_ContactForm->title,
-			) );
-		// }
+		$posted_data['LEAD_TITLE'] = 'Веб форма: ' . $WPCF7_ContactForm->title;
+		$posted_fields['TITLE'] = 'LEAD_TITLE';
+
+		switch ( $WPCF7_ContactForm->id ) {
+			case 5:
+				$posted_fields['ADDRESS']      = 'your-address';
+				$posted_fields['ADDRESS_CITY'] = 'your-city';
+				$posted_fields['SECOND_NAME']  = 'your-name';
+				break;
+		}
+
+		send_b24_lead( $posted_data, $posted_fields );
 	}
 }
 
 add_action( 'wpcf7_mail_sent', 'wpcf7_b24_send_lead', 10, 3 );
 
 if ( ! function_exists( 'send_b24_lead' ) ) {
-	function send_b24_lead( $posted_data, $_fields, $additionals ) {
+	function send_b24_lead( $posted_data, $_fields ) {
 		// Принимаем значения из $posted_data (обработанный $_POST массив)
 		$fields = array_map( function ( $value ) use ( $posted_data ) {
 			return isset( $posted_data[ $value ] ) ? $posted_data[ $value ] : '';
@@ -95,13 +105,23 @@ if ( ! function_exists( 'send_b24_lead' ) ) {
 		if ( ! empty( $fields['COMMENTS'] ) ) {
 			$fields['COMMENTS'] .= "\r\n____________________________________________";
 			$fields['COMMENTS'] .= "\r\n";
-
-			array_walk( $posted_data, function ( $val, $key ) use ( &$fields, $_fields ) {
-				if ( ! in_array( $key, $_fields ) && $val ) {
-					$fields['COMMENTS'] .= "$key: $val.\r\n";
-				}
-			} );
 		}
+		else {
+			$fields['COMMENTS'] = '';
+		}
+
+		array_walk( $posted_data, function ( $val, $key ) use ( &$fields, $_fields ) {
+			if ( ! in_array( $key, $_fields ) && $val ) {
+
+				if( is_array( $val ) ) {
+					$val = implode(', ', $val);
+				}
+
+				if( 0 !== strpos($key, '_wpcf7') ) {
+					$fields['COMMENTS'] .= __( $key, 'cfb24lead' ) . ": $val.<br />\r\n";
+				}
+			}
+		} );
 
 		// Переводим номер телефона в многомерный массив
 		if ( ! empty( $fields['PHONE'] ) ) {
@@ -126,12 +146,19 @@ if ( ! function_exists( 'send_b24_lead' ) ) {
 		// Если хотим убрать пустые значения
 		// $fields = array_filter( $fields );
 
-		$fields = wp_parse_args( array_merge( $fields, $additionals ), array(
-			'TITLE'          => 'Лид с веб формы сайта',
-			'STATUS_ID'      => 'NEW',
-			'ASSIGNED_BY_ID' => BITRIX24_USER_ID,
-			'SOURCE_ID'      => 'WEB'
+		$fields = wp_parse_args( $fields, array(
+			'TITLE'              => 'Лид с веб формы сайта',
+			'STATUS_ID'          => 'NEW',
+			'ASSIGNED_BY_ID'     => BITRIX24_USER_ID,
+			'SOURCE_ID'          => 'WEB',
 		) );
+
+		if( ! empty( $_SERVER['HTTP_REFERER'] ) ) {
+			$fields[ 'SOURCE_DESCRIPTION' ] = substr($_SERVER['HTTP_REFERER'], 0, strpos($_SERVER['HTTP_REFERER'], '?'));
+		}
+		elseif( ! empty( $posted_data['_wpcf7_container_post'] ) ) {
+			$fields[ 'SOURCE_DESCRIPTION' ] = get_permalink( absint( $posted_data['_wpcf7_container_post'] ) );
+		}
 
 		$params = array( "REGISTER_SONET_EVENT" => "Y" );
 
@@ -153,5 +180,24 @@ if ( ! function_exists( 'send_b24_lead' ) ) {
 
 		// Do u need answer?
 		// $answer = json_decode( $result, $in_array = true );
+		return $result;
 	}
 }
+
+/**
+ * Insert UTM marks to form
+ */
+add_filter( 'wpcf7_form_hidden_fields', function( $fields ) {
+
+	$utm_marks = array('utm_source', 'utm_content', 'utm_medium', 'utm_campaign', 'utm_term');
+
+	array_walk($_GET, function( $value, $key ) use ( $utm_marks, &$fields ) {
+		$lowerkey = strtolower($key);
+
+		if( in_array( $lowerkey, $utm_marks ) ) {
+			$fields[ $lowerkey ] = sanitize_text_field( $value );
+		}
+	});
+
+    return $fields;
+}, 1, 10 );
